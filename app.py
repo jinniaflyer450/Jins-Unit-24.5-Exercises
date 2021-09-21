@@ -5,7 +5,7 @@ as well as updating or deleting their own accounts."""
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from models import db, connect_db, User
-from forms import RegisterForm
+from forms import RegisterForm, LoginForm
 import requests
 from sqlalchemy.exc import IntegrityError
 
@@ -48,5 +48,21 @@ def register_user():
     return render_template('register.html', form=form)
 
 @app.route('/login', methods=["GET", "POST"])
+def login_user():
+    form=LoginForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+
+        user = User.authenticate(username, password)
+
+        if user:
+            session["user_id"]=user.id
+            return redirect('/secret')
+        else:
+            form.username.errors.append("Incorrect username/password combination.")
+    return render_template('login.html', form=form)
 
 @app.route('/secret')
+def secret_route():
+    return "You made it!"

@@ -18,3 +18,8 @@ class RegisterForm(FlaskForm):
     message="First name must be 30 characters or less.")])
     last_name=StringField("Last Name (max 30 characters)", validators=[InputRequired(), Length(max=30, 
     message="Last name must be 30 characters or less.")])
+
+class LoginForm(FlaskForm):
+    username=StringField("Username (max 30 characters)", validators=[InputRequired(), Length(max=30, 
+    message="Username must be 30 characters or less")])
+    password=PasswordField("Password", validators=[InputRequired()])

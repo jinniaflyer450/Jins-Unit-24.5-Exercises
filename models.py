@@ -26,6 +26,14 @@ class User(db.Model):
     def register(cls, username, password, email, first_name, last_name):
         hashed_password = bcrypt.generate_password_hash(password)
         utf8_hash = hashed_password.decode("utf8")
-        
+
         return cls(username=username, password=utf8_hash, email=email, 
         first_name=first_name, last_name=last_name)
+    
+    @classmethod
+    def authenticate(cls, username, password):
+        user = User.query.filter_by(username=username).first()
+        if user and bcrypt.check_password_hash(user.password, password):
+            return user
+        else:
+            return False
