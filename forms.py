@@ -6,7 +6,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Length, Email
-from app import app
 
 class RegisterForm(FlaskForm):
     username=StringField("Username (max 30 characters)", validators=[InputRequired(), Length(max=30, 
