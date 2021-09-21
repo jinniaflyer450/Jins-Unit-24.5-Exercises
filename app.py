@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from models import db, connect_db, User
 from forms import RegisterForm
 import requests
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'catdog'
@@ -36,8 +37,12 @@ def register_user():
         first_name=first_name, last_name=last_name)
 
         db.session.add(new_user)
-        db.session.commit()
-        
+        try:
+            db.session.commit()
+        except IntegrityError:
+            form.username.errors.append("Username already taken. Please choose another.")
+            return render_template('register.html', form=form)
+
         flash("Successfully registered!")
         return redirect('/secret')
     return render_template('register.html', form=form)
