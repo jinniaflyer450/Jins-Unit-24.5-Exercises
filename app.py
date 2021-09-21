@@ -5,6 +5,7 @@ as well as updating or deleting their own accounts."""
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from models import db, connect_db, User
+from forms import RegisterForm
 import requests
 
 app = Flask(__name__)
@@ -23,7 +24,7 @@ def redirect_register():
 
 @app.route('/register', methods=["GET", "POST"])
 def register_user():
-    form = RegisterUserForm()
+    form = RegisterForm()
     if form.validate_on_submit():
         username = form.username.data
         password = form.password.data
