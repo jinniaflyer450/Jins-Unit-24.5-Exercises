@@ -1,3 +1,7 @@
+"""Commentator: An app where users can register, log in to their accounts, and log out. 
+While they are logged in, they can submit, edit, and delete feedback, 
+as well as updating or deleting their own accounts."""
+
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from models import db, connect_db
