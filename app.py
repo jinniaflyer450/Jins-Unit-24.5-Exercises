@@ -4,7 +4,7 @@ as well as updating or deleting their own accounts."""
 
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from models import db, connect_db
+from models import db, connect_db, User
 import requests
 
 app = Flask(__name__)
@@ -16,3 +16,11 @@ app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
 connect_db(app)
 db.create_all()
+
+@app.route('/')
+
+@app.route('/register', methods=["GET", "POST"])
+
+@app.route('/login', methods=["GET", "POST"])
+
+@app.route('/secret')
