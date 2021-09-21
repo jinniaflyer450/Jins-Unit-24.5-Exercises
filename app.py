@@ -34,9 +34,10 @@ def register_user():
         
         new_user = User.register(username=username, password=password, email=email, 
         first_name=first_name, last_name=last_name)
-        
+
         db.session.add(new_user)
         db.session.commit()
+        
         flash("Successfully registered!")
         return redirect('/secret')
     return render_template('register.html', form=form)
