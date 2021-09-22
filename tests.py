@@ -2,12 +2,13 @@
 
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from models import User, db, connect_db
+from models import User, Feedback, db, connect_db
 from forms import RegisterForm, LoginForm
 import requests
 from sqlalchemy.exc import IntegrityError
 from unittest import TestCase
 from app import app
+from seed import seed_users
 
 app.config['SECRET_KEY'] = 'catdog'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Ob1wankenobi@localhost/auth_practice_tests'
@@ -16,13 +17,8 @@ app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['TESTING']=True
 
-#The dummy user used for most of the tests.
-d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
+d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com', 
 'first_name': 'John', 'last_name': 'Doe'}
-
-#The second dummy user used where multiple users are needed.
-d2={'username': 'newuser2', 'password': 'password456', 'email': 'email2@email.com', 
-'first_name': 'Jane', 'last_name': 'Doe'}
 
 class AuthAppTests(TestCase):
     """A series of tests for the Commentator app."""
@@ -48,7 +44,7 @@ class AuthAppTests(TestCase):
         """Tests to confirm that the register method on the User model returns a user with
         the appropriate properties."""
         with app.test_client() as client:
-            user = User.register(d["username"], d["password"], d["email"], d["first_name"], d["last_name"])
+            user = User.register('newuser1', 'password123', 'email@email.com', 'John', 'Doe')
             self.assertEqual(user.username, 'newuser1')
             self.assertNotEqual(user.password, 'password123')
             self.assertEqual(user.email, 'email@email.com')
@@ -112,7 +108,7 @@ class AuthAppTests(TestCase):
         database if given the correct username and password for that user and that it returns False
         if the username-password combination does not match an existing user."""
         with app.test_client() as client:
-            client.post('/register', data=d, follow_redirects=True)
+            seed_users()
             user_in_db = User.query.filter_by(username='newuser1').first()
             self.assertEqual(user_in_db, User.authenticate('newuser1', 'password123'))
             self.assertFalse(User.authenticate('newuser1', 'incorrectpassword'))
@@ -133,10 +129,10 @@ class AuthAppTests(TestCase):
         '/login' if the POST request contains a username and password that matches a user in the 
         database."""
         with app.test_client() as client:
-            client.post('/register', data=d, follow_redirects=True)
+            seed_users()
             session.pop("user_id")
             self.assertIsNone(session.get("user_id"))
-            request = client.post('/login', data={"username":d["username"], "password":d["password"]}, 
+            request = client.post('/login', data={"username": 'newuser1', "password":'password123'}, 
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
@@ -150,10 +146,10 @@ class AuthAppTests(TestCase):
         database, even if the password is the same as an existing user's. No username
         should be stored in session."""
         with app.test_client() as client:
-            client.post('/register', data=d, follow_redirects=True)
+            seed_users()
             session.clear()
             self.assertIsNone(session.get("user_id"))
-            request=client.post('/login', data={"username": 'newuser2', "password": d["password"]},
+            request=client.post('/login', data={"username": 'newuser4', "password": 'password123'},
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response=request.get_data(as_text=True)
@@ -168,10 +164,10 @@ class AuthAppTests(TestCase):
         password that does not match the user's password when its hash is compared to the user's
         stored hash. No username should be stored in session."""
         with app.test_client() as client:
-            client.post('/register', data=d, follow_redirects=True)
+            seed_users()
             session.clear()
             self.assertIsNone(session.get("user_id"))
-            request=client.post('/login', data={"username": d["username"], "password": "wrongpassword"},
+            request=client.post('/login', data={"username": 'newuser1', "password": "wrongpassword"},
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response=request.get_data(as_text=True)
@@ -185,9 +181,7 @@ class AuthAppTests(TestCase):
         (i.e. there is a user_id in session, even if it isn't that of the user whose details are
         displayed)."""
         with app.test_client() as client:
-            client.post('/register', data=d, follow_redirects=True)
-            session.clear()
-            client.post('/register', data=d2, follow_redirects=True)
+            seed_users()
             self.assertEqual(session.get("user_id"), 'newuser2')
             request = client.get('/users/newuser1', follow_redirects=True)
             self.assertEqual(request.status_code, 200)
@@ -203,9 +197,7 @@ class AuthAppTests(TestCase):
         '/users/{user_id}'.' if a user tries to make a GET request to any '/users/{user_id}' route 
         without being logged in (i.e. there is no user_id in session)."""
         with app.test_client() as client:
-            client.post('/register', data=d, follow_redirects=True)
-            client.get('/logout', follow_redirects=True)
-            client.post('/register', data=d2, follow_redirects=True)
+            seed_users()
             client.get('/logout', follow_redirects=True)
             self.assertEqual(session.get("user_id"), None)
             request = client.get('/users/newuser1', follow_redirects=True)
@@ -224,8 +216,8 @@ class AuthAppTests(TestCase):
         rendering 'register.html') with the flashed message 'Succesfully logged out.'. There should
         be no information in the session afterward, even if there would have been before the request."""
         with app.test_client() as client:
-            client.post('/register', data=d, follow_redirects=True)
-            self.assertEqual(session.get("user_id"), "newuser1")
+            seed_users()
+            self.assertEqual(session.get("user_id"), "newuser3")
             request = client.get('/logout', follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
