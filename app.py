@@ -72,6 +72,10 @@ def login_user():
             flash("Logged in!")
             return redirect('/secret')
         else:
+            #Not sure why we had to clear the session within the view function rather than in tests.
+            #Maybe the session in the view function itself and the session in the test client are two
+            #different entities?
+            session.clear()
             form.username.errors.append("Incorrect username/password combination.")
     return render_template('login.html', form=form)
 
@@ -80,3 +84,9 @@ def secret_route():
     """A view function that confirms a user has successfully registered or logged in by returning
     'You made it!'"""
     return "You made it!"
+
+@app.route('/logout')
+def logout_user():
+    session.clear()
+    flash("Successfully logged out.")
+    return redirect('/')

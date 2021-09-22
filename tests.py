@@ -183,4 +183,18 @@ class AuthAppTests(TestCase):
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
             self.assertIn("You made it!", response)
+    
+    def test_logout_user(self):
+        """Tests to confirm that the view function 'logout_user' returns a redirect to '/' (eventually
+        rendering 'register.html') with the flashed message 'Succesfully logged out.'. There should
+        be no information in the session afterward, even if there would have been before the request."""
+        with app.test_client() as client:
+            client.post('/register', data=d, follow_redirects=True)
+            self.assertEqual(session.get("user_id"), "newuser1")
+            request = client.get('/logout', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIn("Successfully logged out.", response)
+            self.assertIn("<title>Register</title>", response)
+            self.assertIsNone(session.get("user_id"))
 
