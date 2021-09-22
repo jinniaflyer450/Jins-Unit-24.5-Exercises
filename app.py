@@ -88,7 +88,7 @@ def show_user_details(username):
         user = User.query.get(username)
         return render_template('userdetails.html', user=user)
     else:
-        flash("Please log in to access this page.")
+        flash(f"Please log in to access /users/{username}.")
         return redirect('/login')
 
 

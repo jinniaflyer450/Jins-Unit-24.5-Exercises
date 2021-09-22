@@ -196,6 +196,24 @@ class AuthAppTests(TestCase):
             self.assertIn("<li>First Name: John</li>", response)
             #Just to confirm the get request didn't mess with the session.
             self.assertEqual(session.get("user_id"), 'newuser2')
+    
+    def test_show_user_details_no_login(self):
+        """Tests to confirm that the view function 'show_user_details' returns a redirect to '/login'
+        (eventually rendering 'login.html') with a flashed message 'Please log in to access 
+        '/users/{user_id}'.' if a user tries to make a GET request to any '/users/{user_id}' route 
+        without being logged in (i.e. there is no user_id in session)."""
+        with app.test_client() as client:
+            client.post('/register', data=d, follow_redirects=True)
+            client.get('/logout', follow_redirects=True)
+            client.post('/register', data=d2, follow_redirects=True)
+            client.get('/logout', follow_redirects=True)
+            self.assertEqual(session.get("user_id"), None)
+            request = client.get('/users/newuser1', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIn("<title>Log In</title>", response)
+            self.assertIn("<button>Log In</button>", response)
+            self.assertIn("Please log in to access /users/newuser1.", response)
 
     
     def test_logout_user(self):
