@@ -59,7 +59,8 @@ def login_user():
         user = User.authenticate(username, password)
 
         if user:
-            session["user_id"]=user.id
+            session["user_id"]=user.username
+            flash("Logged in!")
             return redirect('/secret')
         else:
             form.username.errors.append("Incorrect username/password combination.")
