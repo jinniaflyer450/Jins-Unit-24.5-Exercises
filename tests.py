@@ -214,7 +214,10 @@ class AuthAppTests(TestCase):
             self.assertIn("<title>Log In</title>", response)
             self.assertIn("<button>Log In</button>", response)
             self.assertIn("Please log in to access /users/newuser1.", response)
-
+            request = client.get('/users/newuser2', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIn("Please log in to access /users/newuser2.", response)
     
     def test_logout_user(self):
         """Tests to confirm that the view function 'logout_user' returns a redirect to '/' (eventually
