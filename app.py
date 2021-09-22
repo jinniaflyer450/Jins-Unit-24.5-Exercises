@@ -52,7 +52,7 @@ def register_user():
 
         flash("Successfully registered!")
         session["user_id"] = new_user.username
-        return redirect('/secret')
+        return redirect(f'/users/{session["user_id"]}')
     return render_template('register.html', form=form)
 
 @app.route('/login', methods=["GET", "POST"])
@@ -70,7 +70,7 @@ def login_user():
         if user:
             session["user_id"]=user.username
             flash("Logged in!")
-            return redirect('/secret')
+            return redirect(f'/users/{session["user_id"]}')
         else:
             #Not sure why we had to clear the session within the view function rather than in tests.
             #Maybe the session in the view function itself and the session in the test client are two
@@ -79,14 +79,23 @@ def login_user():
             form.username.errors.append("Incorrect username/password combination.")
     return render_template('login.html', form=form)
 
-@app.route('/secret')
-def secret_route():
-    """A view function that confirms a user has successfully registered or logged in by returning
-    'You made it!'"""
-    return "You made it!"
+@app.route('/users/<username>')
+def show_user_details(username):
+    """A view function that is dependent on a user being logged in. If a user is logged in, it renders
+    'userdetails.html' with user details for the user with the id in the url. If a user is not logged in,
+    it returns a redirect to '/login' with the flashed message 'Please log in to access this page.'"""
+    if session.get("user_id") != None:
+        user = User.query.get(username)
+        return render_template('userdetails.html', user=user)
+    else:
+        flash("Please log in to access this page.")
+        return redirect('/login')
+
 
 @app.route('/logout')
 def logout_user():
+    """A view function that clears any data from the session, logging any current user out, then
+    flashes a message declaring success and returns a redirect to '/', eventually rendering 'register.html'"""
     session.clear()
     flash("Successfully logged out.")
     return redirect('/')

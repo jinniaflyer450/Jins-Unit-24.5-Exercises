@@ -18,7 +18,11 @@ app.config['TESTING']=True
 
 #The dummy user used for most of the tests.
 d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
-            'first_name': 'John', 'last_name': 'Doe'}
+'first_name': 'John', 'last_name': 'Doe'}
+
+#The second dummy user used where multiple users are needed.
+d2={'username': 'newuser2', 'password': 'password456', 'email': 'email2@email.com', 
+'first_name': 'Jane', 'last_name': 'Doe'}
 
 class AuthAppTests(TestCase):
     """A series of tests for the Commentator app."""
@@ -69,7 +73,7 @@ class AuthAppTests(TestCase):
             request = client.post('/register', data=d, follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("You made it!", response)
+            self.assertIn("<title>Details for newuser1</title>", response)
             self.assertEqual(User.query.count(), 1)
             self.assertEqual(session["user_id"], 
             User.query.filter_by(username='newuser1').first().username)
@@ -136,7 +140,7 @@ class AuthAppTests(TestCase):
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("You made it!", response)
+            self.assertIn("<title>Details for newuser1</title>", response)
             self.assertEqual(session["user_id"], 'newuser1')
     
     def test_login_user_wrong_username(self):
@@ -175,14 +179,24 @@ class AuthAppTests(TestCase):
             self.assertIn("Incorrect username/password combination.", response)
             self.assertIsNone(session.get("user_id"))
     
-    def test_secret_route(self):
-        """Tests to confirm that the view function 'secret_route' renders 'You made it!' on a GET request
-        to '/secret'."""
+    def test_show_user_details_successful(self):
+        """Tests to confirm that the view function 'show_user_details' renders 'userdetails.html'
+        with the details of the user whose username is in the url if there is a user logged in 
+        (i.e. there is a user_id in session, even if it isn't that of the user whose details are
+        displayed)."""
         with app.test_client() as client:
-            request = client.get('/secret', follow_redirects=True)
+            client.post('/register', data=d, follow_redirects=True)
+            session.clear()
+            client.post('/register', data=d2, follow_redirects=True)
+            self.assertEqual(session.get("user_id"), 'newuser2')
+            request = client.get('/users/newuser1', follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("You made it!", response)
+            self.assertIn("<title>Details for newuser1</title>", response)
+            self.assertIn("<li>First Name: John</li>", response)
+            #Just to confirm the get request didn't mess with the session.
+            self.assertEqual(session.get("user_id"), 'newuser2')
+
     
     def test_logout_user(self):
         """Tests to confirm that the view function 'logout_user' returns a redirect to '/' (eventually
