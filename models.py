@@ -13,8 +13,9 @@ def connect_db(app):
     db.init_app(app)
 
 class User(db.Model):
+    """A user of the Commentator app."""
     __tablename__ = "users"
-    
+
     username=db.Column(db.String(20), primary_key=True)
     password=db.Column(db.Text, nullable=False)
     email=db.Column(db.String(50), nullable=False, unique=True)

@@ -1,3 +1,5 @@
+"""The test file for the Commentator app."""
+
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from models import User, db, connect_db
@@ -14,27 +16,33 @@ app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['TESTING']=True
 
-
+#The dummy user used for most of the tests.
 d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
             'first_name': 'John', 'last_name': 'Doe'}
 
 class AuthAppTests(TestCase):
+    """A series of tests for the Commentator app."""
     @classmethod
     def setUpCls(cls):
+        """Readies database tables for the first test."""
         db.create_all()
         db.session.commit()
 
     def setUp(self):
+        """Resets the database before each test."""
         db.drop_all()
         db.session.commit()
         db.create_all()
         db.session.commit()
 
     def tearDown(self):
+        """Resets the database after each test."""
         db.drop_all()
         db.session.commit()
 
     def test_register_method(self):
+        """Tests to confirm that the register method on the User model returns a user with
+        the appropriate properties."""
         with app.test_client() as client:
             user = User.register(d["username"], d["password"], d["email"], d["first_name"], d["last_name"])
             self.assertEqual(user.username, 'newuser1')
@@ -44,6 +52,8 @@ class AuthAppTests(TestCase):
             self.assertEqual(user.last_name, 'Doe')
 
     def test_register_user_get(self):
+        """Tests to confirm that the view function 'register_user' returns 'register.html' on a 
+        GET request to '/register'.'"""
         with app.test_client() as client:
             request = client.get('/register')
             self.assertEqual(request.status_code, 200)
@@ -52,6 +62,9 @@ class AuthAppTests(TestCase):
             self.assertIn('<button>Register</button>', response)
     
     def test_register_user_successful(self):
+        """Tests to confirm that the view function 'register_user' successfully registers an instance
+        of the User model in the database on a POST request to '/register' given information that passes 
+        validation, stores the user's username in the session, and returns a redirect to '/secret'."""
         with app.test_client() as client:
             request = client.post('/register', data=d, follow_redirects=True)
             self.assertEqual(request.status_code, 200)
@@ -63,6 +76,10 @@ class AuthAppTests(TestCase):
     
     def test_register_user_duplicate_username(self):
         with app.test_client() as client:
+            """Tests to confirm that if the view function 'register_user' receives a registration
+            attempt that contains a username that is a duplicate of an existing user's username on a 
+            POST request to '/register', it does not add the new attempt to the database and renders 
+            'register.html' again with the 'duplicate username' error on the page."""
             client.post('/register', data=d, follow_redirects=True)
             request=client.post('/register', data=d, follow_redirects=True)
             self.assertEqual(request.status_code, 200)
@@ -72,6 +89,10 @@ class AuthAppTests(TestCase):
             self.assertEqual(User.query.count(), 1)
     
     def test_register_user_missing_info(self):
+        """Tests to confirm that if the view function 'register_user' receives a registration
+        attempt that does not contain required data on a POST request to '/register', it does
+        not add the new attempt to the database and renders 'register.html' again with one of the
+        'missing data' errors on the page."""
         with app.test_client() as client:
             missing_data={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
             'first_name': 'John', 'last_name': ''}
@@ -83,6 +104,9 @@ class AuthAppTests(TestCase):
             self.assertEqual(User.query.count(), 0)
 
     def test_authenticate_method(self):
+        """Tests to confirm that the authenticate method on the User model returns a user from the
+        database if given the correct username and password for that user and that it returns False
+        if the username-password combination does not match an existing user."""
         with app.test_client() as client:
             client.post('/register', data=d, follow_redirects=True)
             user_in_db = User.query.filter_by(username='newuser1').first()
@@ -91,6 +115,8 @@ class AuthAppTests(TestCase):
             self.assertFalse(User.authenticate('newuser2', 'password123'))
     
     def test_login_user_get(self):
+        """Tests to confirm that the view function 'login_user' returns 'login.html' on a GET
+        request to '/login'."""
         with app.test_client() as client:
             request=client.get('/login')
             response=request.get_data(as_text=True)
@@ -98,6 +124,10 @@ class AuthAppTests(TestCase):
             self.assertIn("<button>Log In</button>", response)
     
     def test_login_user_successful(self):
+        """Tests to confirm that the view function 'login_user' successfully store's a user's username
+        in session (returns a redirect to '/secret') and returns 'You made it!' on a POST request to 
+        '/login' if the POST request contains a username and password that matches a user in the 
+        database."""
         with app.test_client() as client:
             client.post('/register', data=d, follow_redirects=True)
             session.pop("user_id")

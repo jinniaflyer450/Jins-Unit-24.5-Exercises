@@ -21,10 +21,14 @@ db.create_all()
 
 @app.route('/')
 def redirect_register():
+    """A view function that redirects to the '/register' route."""
     return redirect('/register')
 
 @app.route('/register', methods=["GET", "POST"])
 def register_user():
+    """A view function that returns 'register.html' on a GET request and attempts to register a new
+    user on a POST request. If registration is successful, it returns a redirect to '/secret'. If not,
+    it renders 'register.html' again with relevant errors."""
     form = RegisterForm()
     if form.validate_on_submit():
         username = form.username.data
@@ -37,6 +41,8 @@ def register_user():
         first_name=first_name, last_name=last_name)
 
         db.session.add(new_user)
+
+        #Handles the case where a user attempts to register with a duplicate username.
         try:
             db.session.commit()
         except IntegrityError:
@@ -51,6 +57,9 @@ def register_user():
 
 @app.route('/login', methods=["GET", "POST"])
 def login_user():
+    """A view function that returns 'login.html' on a GET request and attempts to log a user in on a 
+    POST request. If login is successful, it returns a redirect to '/secret'. If not, it returns
+    'login.html' again with relevant errors."""
     form=LoginForm()
     if form.validate_on_submit():
         username = form.username.data
@@ -68,4 +77,6 @@ def login_user():
 
 @app.route('/secret')
 def secret_route():
+    """A view function that confirms a user has successfully registered or logged in by returning
+    'You made it!'"""
     return "You made it!"
