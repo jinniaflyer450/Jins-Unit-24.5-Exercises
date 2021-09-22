@@ -82,3 +82,22 @@ class AuthAppTests(TestCase):
             response = request.get_data(as_text=True)
             self.assertIn("<title>Register</title>", response)
             self.assertIn("Last name required.", response)
+            self.assertEqual(User.query.count(), 0)
+
+    def test_authenticate_method(self):
+        with app.test_client() as client:
+            d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
+            'first_name': 'John', 'last_name': 'Doe'}
+            client.post('/register', data=d, follow_redirects=True)
+            user_in_db = User.query.filter_by(username='newuser1').first()
+            self.assertEqual(user_in_db, User.authenticate('newuser1', 'password123'))
+            self.assertFalse(User.authenticate('newuser1', 'incorrectpassword'))
+            self.assertFalse(User.authenticate('newuser2', 'password123'))
+    
+    def test_login_user_successful(self):
+        with app.test_client() as client:
+            d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
+            'first_name': 'John', 'last_name': 'Doe'}
+            client.post('/register', data=d, follow_redirects=True)
+            session.pop("user_id")
+            self.assertIsNone(session.get("user_id"))
