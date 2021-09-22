@@ -41,9 +41,11 @@ def register_user():
             db.session.commit()
         except IntegrityError:
             form.username.errors.append("Username already taken. Please choose another.")
+            db.session.rollback()
             return render_template('register.html', form=form)
 
         flash("Successfully registered!")
+        session["user_id"] = new_user.username
         return redirect('/secret')
     return render_template('register.html', form=form)
 
