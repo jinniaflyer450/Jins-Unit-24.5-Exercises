@@ -124,7 +124,7 @@ class AuthAppTests(TestCase):
             self.assertIn("<button>Log In</button>", response)
     
     def test_login_user_successful(self):
-        """Tests to confirm that the view function 'login_user' successfully store's a user's username
+        """Tests to confirm that the view function 'login_user' successfully stores a user's username
         in session (returns a redirect to '/secret') and returns 'You made it!' on a POST request to 
         '/login' if the POST request contains a username and password that matches a user in the 
         database."""
@@ -138,3 +138,21 @@ class AuthAppTests(TestCase):
             response = request.get_data(as_text=True)
             self.assertIn("You made it!", response)
             self.assertEqual(session["user_id"], 'newuser1')
+    
+    def test_login_user_wrong_username(self):
+        """Tests to confirm that the view function 'login_user' renders 'login.html' with a 
+        'username/password combination is incorrect' error on a POST request to '/login' if
+        a user attempts to log in with a username that does not match any user in the 
+        database, even if the password is the same as an existing user's. No username
+        should be stored in session."""
+        with app.test_client() as client:
+            client.post('/register', data=d, follow_redirects=True)
+            session.clear()
+            self.assertIsNone(session.get("user_id"))
+            request=client.post('/login', data={"username": 'newuser2', "password": d["password"]},
+            follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("<title>Log In</title>", response)
+            self.assertIn("Incorrect username/password combination.", response)
+            self.assertIsNone(session.get("user_id"))
