@@ -52,7 +52,7 @@ def register_user():
 
         flash("Successfully registered!")
         session["user_id"] = new_user.username
-        return redirect(f'/users/{session["user_id"]}')
+        return redirect('/secret')
     return render_template('register.html', form=form)
 
 @app.route('/login', methods=["GET", "POST"])
@@ -70,7 +70,7 @@ def login_user():
         if user:
             session["user_id"]=user.username
             flash("Logged in!")
-            return redirect(f'/users/{session["user_id"]}')
+            return redirect('/secret')
         else:
             #Not sure why we had to clear the session within the view function rather than in tests.
             #Maybe the session in the view function itself and the session in the test client are two
@@ -79,6 +79,7 @@ def login_user():
             form.username.errors.append("Incorrect username/password combination.")
     return render_template('login.html', form=form)
 
+<<<<<<< HEAD
 @app.route('/users/<username>')
 def show_user_details(username):
     """A view function that is dependent on a user being logged in. If a user is logged in, it renders
@@ -91,11 +92,16 @@ def show_user_details(username):
         flash(f"Please log in to access /users/{username}.")
         return redirect('/login')
 
+=======
+@app.route('/secret')
+def secret_route():
+    """A view function that confirms a user has successfully registered or logged in by returning
+    'You made it!'"""
+    return "You made it!"
+>>>>>>> parent of 14c402b (updated user details route from secret; updated other tests and routes to redirect to user details route correctly)
 
 @app.route('/logout')
 def logout_user():
-    """A view function that clears any data from the session, logging any current user out, then
-    flashes a message declaring success and returns a redirect to '/', eventually rendering 'register.html'"""
     session.clear()
     flash("Successfully logged out.")
     return redirect('/')

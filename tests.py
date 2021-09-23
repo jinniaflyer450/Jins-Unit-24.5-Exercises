@@ -17,8 +17,14 @@ app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['TESTING']=True
 
+<<<<<<< HEAD
 d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com', 
 'first_name': 'John', 'last_name': 'Doe'}
+=======
+#The dummy user used for most of the tests.
+d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
+            'first_name': 'John', 'last_name': 'Doe'}
+>>>>>>> parent of 14c402b (updated user details route from secret; updated other tests and routes to redirect to user details route correctly)
 
 class AuthAppTests(TestCase):
     """A series of tests for the Commentator app."""
@@ -70,7 +76,7 @@ class AuthAppTests(TestCase):
             request = client.post('/register', data=d, follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("<title>Details for newuser1</title>", response)
+            self.assertIn("You made it!", response)
             self.assertEqual(User.query.count(), 1)
             self.assertEqual(session["user_id"], 
             User.query.filter_by(username='newuser1').first().username)
@@ -135,7 +141,7 @@ class AuthAppTests(TestCase):
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("<title>Details for newuser1</title>", response)
+            self.assertIn("You made it!", response)
             self.assertEqual(session["user_id"], 'newuser1')
     
     def test_login_user_wrong_username(self):
@@ -172,11 +178,9 @@ class AuthAppTests(TestCase):
             self.assertIn("Incorrect username/password combination.", response)
             self.assertIsNone(session.get("user_id"))
     
-    def test_show_user_details_successful(self):
-        """Tests to confirm that the view function 'show_user_details' renders 'userdetails.html'
-        with the details of the user whose username is in the url if there is a user logged in 
-        (i.e. there is a user_id in session, even if it isn't that of the user whose details are
-        displayed)."""
+    def test_secret_route(self):
+        """Tests to confirm that the view function 'secret_route' renders 'You made it!' on a GET request
+        to '/secret'."""
         with app.test_client() as client:
             self.assertEqual(session.get("user_id"), 'newuser2')
             request = client.get('/users/newuser1', follow_redirects=True)
