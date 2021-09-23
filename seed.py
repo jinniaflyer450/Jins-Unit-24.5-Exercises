@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_bcrypt import Bcrypt
-from models import db, connect_db, User, Feedback
+from models import db, connect_db, User
 
 bcrypt=Bcrypt()
 
