@@ -1,30 +1,36 @@
-"""The test file for the Commentator app."""
-
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from models import User, db, connect_db
-from forms import RegisterForm, LoginForm
-import requests
-from sqlalchemy.exc import IntegrityError
-from unittest import TestCase
 from app import app
-from seed import seed_users
+from models import db, connect_db, User
+from unittest import TestCase
+
+#The dummy user used for most of the tests.
+d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
+'first_name': 'John', 'last_name': 'Doe'}
 
 app.config['SECRET_KEY'] = 'catdog'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Ob1wankenobi@localhost/auth_practice_tests'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = True
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
-app.config['WTF_CSRF_ENABLED'] = False
-app.config['TESTING']=True
 
-<<<<<<< HEAD
-d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com', 
-'first_name': 'John', 'last_name': 'Doe'}
-=======
-#The dummy user used for most of the tests.
-d={'username': 'newuser1', 'password': 'password123', 'email': 'email@email.com',
-            'first_name': 'John', 'last_name': 'Doe'}
->>>>>>> parent of 14c402b (updated user details route from secret; updated other tests and routes to redirect to user details route correctly)
+def seed_database():
+    user1 = User.register(
+        username='newuser1', password='password123', email='email@email.com', first_name='John',
+        last_name='Doe')
+
+    user2 = User.register(
+        username='newuser2', password='password456', email='email2@email.com', first_name='Jane',
+        last_name='Doe'
+    )
+
+    user3 = User.register(
+        username='newuser3', password='password789', email='email3@email.com', first_name='Joe',
+        last_name='Doe'
+    )
+
+    db.session.add_all([user1, user2, user3])
+    db.session.commit()
 
 class AuthAppTests(TestCase):
     """A series of tests for the Commentator app."""
@@ -33,18 +39,14 @@ class AuthAppTests(TestCase):
         """Readies database tables for the first test."""
         db.create_all()
         db.session.commit()
-
+    
     def setUp(self):
-        """Resets the database before each test."""
-        db.drop_all()
-        db.session.commit()
         db.create_all()
         db.session.commit()
 
     def tearDown(self):
-        """Resets the database after each test."""
+        db.session.close_all()
         db.drop_all()
-        db.session.commit()
 
     def test_register_method(self):
         """Tests to confirm that the register method on the User model returns a user with
@@ -115,6 +117,7 @@ class AuthAppTests(TestCase):
         database if given the correct username and password for that user and that it returns False
         if the username-password combination does not match an existing user."""
         with app.test_client() as client:
+            seed_database()
             user_in_db = User.query.filter_by(username='newuser1').first()
             self.assertEqual(user_in_db, User.authenticate('newuser1', 'password123'))
             self.assertFalse(User.authenticate('newuser1', 'incorrectpassword'))
@@ -124,6 +127,7 @@ class AuthAppTests(TestCase):
         """Tests to confirm that the view function 'login_user' returns 'login.html' on a GET
         request to '/login'."""
         with app.test_client() as client:
+            seed_database()
             request=client.get('/login')
             response=request.get_data(as_text=True)
             self.assertIn("<title>Log In</title>", response)
@@ -135,8 +139,7 @@ class AuthAppTests(TestCase):
         '/login' if the POST request contains a username and password that matches a user in the 
         database."""
         with app.test_client() as client:
-            session.pop("user_id")
-            self.assertIsNone(session.get("user_id"))
+            seed_database()
             request = client.post('/login', data={"username": 'newuser1', "password":'password123'}, 
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
@@ -151,8 +154,7 @@ class AuthAppTests(TestCase):
         database, even if the password is the same as an existing user's. No username
         should be stored in session."""
         with app.test_client() as client:
-            session.clear()
-            self.assertIsNone(session.get("user_id"))
+            seed_database()
             request=client.post('/login', data={"username": 'newuser4', "password": 'password123'},
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
@@ -168,8 +170,7 @@ class AuthAppTests(TestCase):
         password that does not match the user's password when its hash is compared to the user's
         stored hash. No username should be stored in session."""
         with app.test_client() as client:
-            session.clear()
-            self.assertIsNone(session.get("user_id"))
+            seed_database()
             request=client.post('/login', data={"username": 'newuser1', "password": "wrongpassword"},
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
@@ -182,41 +183,27 @@ class AuthAppTests(TestCase):
         """Tests to confirm that the view function 'secret_route' renders 'You made it!' on a GET request
         to '/secret'."""
         with app.test_client() as client:
-            self.assertEqual(session.get("user_id"), 'newuser2')
-            request = client.get('/users/newuser1', follow_redirects=True)
+            request = client.get('/secret', follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("<title>Details for newuser1</title>", response)
-            self.assertIn("<li>First Name: John</li>", response)
-            #Just to confirm the get request didn't mess with the session.
-            self.assertEqual(session.get("user_id"), 'newuser2')
-    
-    def test_show_user_details_no_login(self):
-        """Tests to confirm that the view function 'show_user_details' returns a redirect to '/login'
-        (eventually rendering 'login.html') with a flashed message 'Please log in to access 
-        '/users/{user_id}'.' if a user tries to make a GET request to any '/users/{user_id}' route 
-        without being logged in (i.e. there is no user_id in session)."""
-        with app.test_client() as client:
-            client.get('/logout', follow_redirects=True)
-            self.assertEqual(session.get("user_id"), None)
-            request = client.get('/users/newuser1', follow_redirects=True)
-            self.assertEqual(request.status_code, 200)
-            response = request.get_data(as_text=True)
-            self.assertIn("<title>Log In</title>", response)
-            self.assertIn("<button>Log In</button>", response)
-            self.assertIn("Please log in to access /users/newuser1.", response)
-
+            self.assertEqual("You made it!", response)
     
     def test_logout_user(self):
         """Tests to confirm that the view function 'logout_user' returns a redirect to '/' (eventually
         rendering 'register.html') with the flashed message 'Succesfully logged out.'. There should
         be no information in the session afterward, even if there would have been before the request."""
         with app.test_client() as client:
-            self.assertEqual(session.get("user_id"), "newuser3")
+            seed_database()
+            client.post('/login', data={"username": "newuser1", "password": "password123"})
+            self.assertEqual(session.get("user_id"), "newuser1")
             request = client.get('/logout', follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
             self.assertIn("Successfully logged out.", response)
             self.assertIn("<title>Register</title>", response)
             self.assertIsNone(session.get("user_id"))
+
+
+    
+
 

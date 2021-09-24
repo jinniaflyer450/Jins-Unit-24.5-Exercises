@@ -15,6 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Ob1wankenobi@loca
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+app.config['WTF_CSRF_ENABLED'] = False
 
 connect_db(app)
 db.create_all()
@@ -79,26 +80,11 @@ def login_user():
             form.username.errors.append("Incorrect username/password combination.")
     return render_template('login.html', form=form)
 
-<<<<<<< HEAD
-@app.route('/users/<username>')
-def show_user_details(username):
-    """A view function that is dependent on a user being logged in. If a user is logged in, it renders
-    'userdetails.html' with user details for the user with the id in the url. If a user is not logged in,
-    it returns a redirect to '/login' with the flashed message 'Please log in to access this page.'"""
-    if session.get("user_id") != None:
-        user = User.query.get(username)
-        return render_template('userdetails.html', user=user)
-    else:
-        flash(f"Please log in to access /users/{username}.")
-        return redirect('/login')
-
-=======
 @app.route('/secret')
 def secret_route():
     """A view function that confirms a user has successfully registered or logged in by returning
     'You made it!'"""
     return "You made it!"
->>>>>>> parent of 14c402b (updated user details route from secret; updated other tests and routes to redirect to user details route correctly)
 
 @app.route('/logout')
 def logout_user():
