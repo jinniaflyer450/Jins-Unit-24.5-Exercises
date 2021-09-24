@@ -53,7 +53,7 @@ def register_user():
 
         flash("Successfully registered!")
         session["user_id"] = new_user.username
-        return redirect('/secret')
+        return redirect(f'/users/{new_user.username}')
     return render_template('register.html', form=form)
 
 @app.route('/login', methods=["GET", "POST"])
@@ -71,7 +71,7 @@ def login_user():
         if user:
             session["user_id"]=user.username
             flash("Logged in!")
-            return redirect('/secret')
+            return redirect(f'/users/{user.username}')
         else:
             #Not sure why we had to clear the session within the view function rather than in tests.
             #Maybe the session in the view function itself and the session in the test client are two
@@ -80,11 +80,18 @@ def login_user():
             form.username.errors.append("Incorrect username/password combination.")
     return render_template('login.html', form=form)
 
-@app.route('/secret')
-def secret_route():
-    """A view function that confirms a user has successfully registered or logged in by returning
-    'You made it!'"""
-    return "You made it!"
+@app.route('/users/<username>')
+def show_user_details(username):
+    """A view function that shows 'userdetails.html' with user details (username, name, and password) for 
+    the user in the URL if a user is logged in. If no user is logged in, it returns a redirect to '/login'
+    with the flashed message 'Please log in to view this page.'"""
+    if session.get("user_id"):
+        user = User.query.get_or_404(username)
+        return render_template('userdetails.html', user=user)
+    else:
+        flash("Please log in to view this page.")
+        return redirect('/login')
+
 
 @app.route('/logout')
 def logout_user():

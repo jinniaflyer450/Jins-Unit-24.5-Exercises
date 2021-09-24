@@ -78,7 +78,8 @@ class AuthAppTests(TestCase):
             request = client.post('/register', data=d, follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("You made it!", response)
+            self.assertIn("<li>First Name: John</li>", response)
+            self.assertIn("<title>Details for newuser1</title>", response)
             self.assertEqual(User.query.count(), 1)
             self.assertEqual(session["user_id"], 
             User.query.filter_by(username='newuser1').first().username)
@@ -144,7 +145,8 @@ class AuthAppTests(TestCase):
             follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertIn("You made it!", response)
+            self.assertIn("<li>First Name: John</li>", response)
+            self.assertIn("<title>Details for newuser1</title>", response)
             self.assertEqual(session["user_id"], 'newuser1')
     
     def test_login_user_wrong_username(self):
@@ -179,14 +181,30 @@ class AuthAppTests(TestCase):
             self.assertIn("Incorrect username/password combination.", response)
             self.assertIsNone(session.get("user_id"))
     
-    def test_secret_route(self):
-        """Tests to confirm that the view function 'secret_route' renders 'You made it!' on a GET request
-        to '/secret'."""
+    def test_show_user_details_successful(self):
+        """Tests to confirm that the view function 'show_user_details' returns 'userdetails.html'
+        with details for the user passed in to the function if a user is logged in."""
         with app.test_client() as client:
-            request = client.get('/secret', follow_redirects=True)
+            seed_database()
+            client.post('/login', data={"username": "newuser2", "password": "password456"}, 
+            follow_redirects=True)
+            self.assertEqual(session.get("user_id"), "newuser2")
+            request = client.get('/users/newuser1', follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response = request.get_data(as_text=True)
-            self.assertEqual("You made it!", response)
+            self.assertIn("<h1>Details for newuser1</h1>", response)
+            self.assertIn("<li>First Name: John</li>", response)
+    
+    def test_show_user_details_no_login(self):
+        """Tests to confirm that the view function 'show_user_details' returns a redirect to
+        '/login' if no user is logged in when a request to '/users/<username>' is made."""
+        with app.test_client() as client:
+            seed_database()
+            request = client.get('/users/newuser1', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIn("Please log in to view this page.", response)
+            self.assertIn("<title>Log In</title>", response)
     
     def test_logout_user(self):
         """Tests to confirm that the view function 'logout_user' returns a redirect to '/' (eventually
