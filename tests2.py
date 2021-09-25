@@ -83,7 +83,8 @@ class AuthAppTests(TestCase):
     def test_register_user_successful(self):
         """Tests to confirm that the view function 'register_user' successfully registers an instance
         of the User model in the database on a POST request to '/register' given information that passes 
-        validation, stores the user's username in the session, and returns a redirect to '/secret'."""
+        validation, stores the user's username in the session, and returns a redirect to the user details
+        page."""
         with app.test_client() as client:
             request = client.post('/register', data=d, follow_redirects=True)
             self.assertEqual(request.status_code, 200)
@@ -422,7 +423,7 @@ class AuthAppTests(TestCase):
             self.assertIn("<title>Details for newuser1</title>", response)
 
             #Tests to confirm that 'addfeedback.html' renders with the appropriate username
-            #and form if somehow, a user sends a POST request to this function with missing
+            #and form if, somehow, a user sends a POST request to this function with missing
             # data.
             client.get('/logout', follow_redirects=True)
             client.post('/login', data={"username": "newuser1", "password": "password123"}, 
@@ -434,3 +435,47 @@ class AuthAppTests(TestCase):
             self.assertIn("Title required", response)
             self.assertIn("<title>Add Feedback for newuser1</title>", response)
 
+    def test_delete_user_success(self):
+        """Tests to confirm that an authorized POST request to 'users/<username>/delete'
+        deletes a user from the database, along with all of their feedback, and returns
+        a redirect to '/' with the appropriate flashed message."""
+        with app.test_client() as client:
+            seed_database()
+            client.post('/login', data={"username": "newuser1", "password": "password123"}, 
+            follow_redirects=True)
+            request=client.post('/users/newuser1/delete', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("Successfully deleted the user newuser1!", response)
+            self.assertIn("<title>Register</title>", response)
+            self.assertIsNone(User.query.filter_by(username="newuser1").first())
+            self.assertIsNone(Feedback.query.filter_by(username="newuser1").first())
+    
+    def test_delete_user_fail(self):
+        """Tests to confirm that an unauthorized POST request to '/users/<username>/delete'
+        does not delete the user with that username from the database or their feedback and 
+        returns a redirect to the user details page for that user with the appropriate flashed
+        message."""
+        with app.test_client() as client:
+            seed_database()
+            #Tests to confirm that if no one is logged in, a user cannot be and is not deleted
+            #and there is a redirect to the login page.
+            request=client.post('/users/newuser1/delete', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("You do not have permission to delete this user.", response)
+            self.assertIn("<title>Log In</title>", response)
+            self.assertEqual(User.query.filter_by(username="newuser1").first().username, "newuser1")
+            self.assertIsNotNone(Feedback.query.filter_by(username="newuser1").first())
+
+            #Tests to confirm that if the wrong user is logged in, a user cannot be and is not deleted
+            #and there is a redirect to the attempted deleted user's details page.
+            client.post('/login', data={"username": "newuser2", "password": "password456"}, 
+            follow_redirects=True)
+            request=client.post('users/newuser1/delete', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("You do not have permission to delete this user.", response)
+            self.assertIn("<title>Details for newuser1</title>", response)
+            self.assertEqual(User.query.filter_by(username="newuser1").first().username, "newuser1")
+            self.assertIsNotNone(Feedback.query.filter_by(username="newuser1").first())

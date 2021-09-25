@@ -93,6 +93,19 @@ def show_user_details(username):
         flash("Please log in to view this page.")
         return redirect('/login')
 
+@app.route('/users/<username>/delete', methods=["POST"])
+def delete_user(username):
+    """A view function that allows a logged-in user to delete their account, removing it and all
+    its feedback from the database and redirecting to '/'."""
+    user = User.query.get_or_404(username)
+    if session.get("user_id") != username:
+        flash("You do not have permission to delete this user.")
+        return redirect(f'/users/{username}')
+    else:
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"Successfully deleted the user {username}!")
+        return redirect('/')
 
 @app.route('/logout')
 def logout_user():

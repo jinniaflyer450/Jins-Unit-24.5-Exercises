@@ -40,12 +40,14 @@ class User(db.Model):
         If the username exists in the database and its user's hashed password matches the hash in the
         database, the method returns the instance of the user. If either condition is not true, the
         method returns False"""
-        
+
         user = User.query.filter_by(username=username).first()
         if user and bcrypt.check_password_hash(user.password, password):
             return user
         else:
             return False
+    
+    feedback=db.relationship("Feedback", cascade="all, delete", backref="user")
 
 
 class Feedback(db.Model):
@@ -56,5 +58,3 @@ class Feedback(db.Model):
     title=db.Column(db.String(100), nullable=False)
     content=db.Column(db.Text, nullable=False)
     username=db.Column(db.String(20), db.ForeignKey("users.username"), nullable=False)
-
-    user = db.relationship("User", backref="feedback")
