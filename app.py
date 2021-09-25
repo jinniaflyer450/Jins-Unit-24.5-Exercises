@@ -108,6 +108,9 @@ def show_edit_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     form = EditFeedbackForm(obj={"title": feedback.title, "content": feedback.content})
     if form.validate_on_submit():
+        if session.get("user_id") != feedback.username:
+            flash("You do not have permission to edit this feedback.")
+            return render_template('editfeedback.html', feedback=feedback, form=form)
         feedback.title = form.title.data
         feedback.content = form.content.data
         db.session.commit()

@@ -259,9 +259,9 @@ class AuthAppTests(TestCase):
             self.assertIn("Title (max 100 characters)", response)
     
     def test_feedback_details_login_wrong_get(self):
-        """Tests to confirm that the vew function 'show_edit_feedback' returns 'editfeedback.html' with
+        """Tests to confirm that the view function 'show_edit_feedback' returns 'editfeedback.html' with
         the correct feedback details but without the edit form if a user who is not the owner of the feedback
-        is logged in."""
+        is logged in on a GET request."""
         with app.test_client() as client:
             seed_database()
             client.post('/login', data={"username" : 'newuser2', "password": "password456"})
@@ -271,10 +271,38 @@ class AuthAppTests(TestCase):
             self.assertIn("<h1>Feedback Content for Hot Dating Tips</h1>", response)
             self.assertNotIn("<h2>Edit Feedback</h2>", response)
             self.assertNotIn("Title (max 100 characters)", response)
-
-
-
-
     
-
-
+    def test_feedback_details_post_successful(self):
+        """Tests to confirm that the view function 'show_edit_feedback' returns 'editfeedback.html' with the
+        appropriate flashed message and the relevant feedback is updated in the database on a POST request
+        with the correct user logged in."""
+        with app.test_client() as client:
+            seed_database()
+            feedback = Feedback.query.get(1)
+            self.assertEqual(feedback.title, "Hot Dating Tips")
+            client.post('/login', data={"username": "newuser1", "password": "password123"}, 
+            follow_redirects=True)
+            request=client.post('/feedback/1/update', data={"title": "Hot Dating Tips For Real", "content": 
+            "Be yourself...unless you're a jerk."}, follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            feedback = Feedback.query.get(1)
+            self.assertEqual(feedback.title, "Hot Dating Tips For Real")
+            self.assertIn("Be yourself...", response)
+            self.assertIn("Feedback successfully edited!", response)
+    
+    def test_feedback_details_post_no_login(self):
+        """Tests to confirm that the view function 'show_edit_feedback' returns 'editfeedback.html' with the
+        appropriate flashed message on a POST request with no user logged in."""
+        with app.test_client() as client:
+            seed_database()
+            feedback = Feedback.query.get(1)
+            self.assertEqual(feedback.title, "Hot Dating Tips")
+            request=client.post('/feedback/1/update', data={"title": "Hot Dating Tips For Real", "content": 
+            "Be yourself...unless you're a jerk"}, follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            feedback = Feedback.query.get(1)
+            self.assertEqual(feedback.title, "Hot Dating Tips")
+            self.assertNotIn("Be yourself...", response)
+            self.assertIn("You do not have permission to edit this feedback", response)
