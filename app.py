@@ -4,8 +4,8 @@ as well as updating or deleting their own accounts."""
 
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from models import db, connect_db, User
-from forms import RegisterForm, LoginForm
+from models import db, connect_db, User, Feedback
+from forms import RegisterForm, LoginForm, EditFeedbackForm
 import requests
 from sqlalchemy.exc import IntegrityError
 
@@ -87,7 +87,8 @@ def show_user_details(username):
     with the flashed message 'Please log in to view this page.'"""
     if session.get("user_id"):
         user = User.query.get_or_404(username)
-        return render_template('userdetails.html', user=user)
+        feedback = Feedback.query.filter_by(username=username).all()
+        return render_template('userdetails.html', user=user, feedback=feedback)
     else:
         flash("Please log in to view this page.")
         return redirect('/login')
@@ -98,3 +99,18 @@ def logout_user():
     session.clear()
     flash("Successfully logged out.")
     return redirect('/')
+
+@app.route('/feedback/<int:feedback_id>/update', methods=["GET", "POST"])
+def show_edit_feedback(feedback_id):
+    """A view function that shows 'editfeedback.html'. If no user or a user who did not create the post is 
+    logged in, they see the title, user, and content of the feedback. If the user who created the post is
+    logged in, they see the above plus a form to edit the post."""
+    feedback = Feedback.query.get_or_404(feedback_id)
+    form = EditFeedbackForm(obj={"title": feedback.title, "content": feedback.content})
+    if form.validate_on_submit():
+        feedback.title = form.title.data
+        feedback.content = form.content.data
+        db.session.commit()
+        flash("Feedback successfully edited!")
+        return render_template('editfeedback.html', feedback=feedback, form=form)
+    return render_template('editfeedback.html', feedback=feedback, form=form)

@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from app import app
-from models import db, connect_db, User
+from models import db, connect_db, User, Feedback
 from unittest import TestCase
 
 #The dummy user used for most of the tests.
@@ -32,6 +32,15 @@ def seed_database():
     db.session.add_all([user1, user2, user3])
     db.session.commit()
 
+    feedback1 = Feedback(title='Hot Dating Tips', content='JK no girlfriend.', username='newuser1')
+    feedback2 = Feedback(title='My goofy husband', content='No girlfriend...but you do have a wife.', 
+    username='newuser2')
+    feedback3= Feedback(title="I guess they worked then!", content="Maybe I should make that post for real...",
+    username='newuser1')
+
+    db.session.add_all([feedback1, feedback2, feedback3])
+    db.session.commit()
+
 class AuthAppTests(TestCase):
     """A series of tests for the Commentator app."""
     @classmethod
@@ -47,6 +56,7 @@ class AuthAppTests(TestCase):
     def tearDown(self):
         db.session.close_all()
         db.drop_all()
+        db.session.commit()
 
     def test_register_method(self):
         """Tests to confirm that the register method on the User model returns a user with
@@ -183,7 +193,7 @@ class AuthAppTests(TestCase):
     
     def test_show_user_details_successful(self):
         """Tests to confirm that the view function 'show_user_details' returns 'userdetails.html'
-        with details for the user passed in to the function if a user is logged in."""
+        with details for the user passed in to the function and their feedback if a user is logged in."""
         with app.test_client() as client:
             seed_database()
             client.post('/login', data={"username": "newuser2", "password": "password456"}, 
@@ -194,6 +204,8 @@ class AuthAppTests(TestCase):
             response = request.get_data(as_text=True)
             self.assertIn("<h1>Details for newuser1</h1>", response)
             self.assertIn("<li>First Name: John</li>", response)
+            self.assertIn("Hot Dating Tips", response)
+            self.assertIn("I guess they worked then!", response)
     
     def test_show_user_details_no_login(self):
         """Tests to confirm that the view function 'show_user_details' returns a redirect to
@@ -220,6 +232,20 @@ class AuthAppTests(TestCase):
             self.assertIn("Successfully logged out.", response)
             self.assertIn("<title>Register</title>", response)
             self.assertIsNone(session.get("user_id"))
+    
+    def test_feedback_details_get(self):
+        """Tests to confirm that the view function 'show_edit_feedback' returns 'editfeedback.html' with
+        the correct feedback details and form to edit the feedback on a GET request with the correct login."""
+        with app.test_client() as client:
+            seed_database()
+            client.post('/login', data={"username" : 'newuser1', "password": "password123"})
+            request=client.get('/feedback/1/update', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIn("<h1>Feedback Content for Hot Dating Tips</h1>", response)
+            self.assertIn("<h2>Edit Feedback</h2>", response)
+            self.assertIn("Title (max 100 characters)", response)
+
 
 
     

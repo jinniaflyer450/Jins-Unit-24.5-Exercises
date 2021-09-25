@@ -25,3 +25,9 @@ class LoginForm(FlaskForm):
     username=StringField("Username (max 30 characters)", validators=[InputRequired(), Length(max=30, 
     message="Username must be 30 characters or less")])
     password=PasswordField("Password", validators=[InputRequired()])
+
+class EditFeedbackForm(FlaskForm):
+    """A form used for editing feedback."""
+    title=StringField("Title (max 100 characters)", validators=[InputRequired("Title required"), 
+    Length(max=30, message="Title must be 100 characters or less.")])
+    content=StringField("Content", validators=[InputRequired("Content required.")])

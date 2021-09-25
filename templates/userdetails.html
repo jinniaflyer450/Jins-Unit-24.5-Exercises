@@ -8,4 +8,14 @@
     <li>First Name: {{user.first_name}}</li>
     <li>Last Name: {{user.last_name}}</li>
 </ul>
+{% if feedback %}
+<h2>Feedback by {{user.username}}:</h2>
+<ul>
+    {% for feedback_piece in feedback %}
+    <li>
+        <a href="/feedback/{{feedback_piece.id}}/update">{{feedback_piece.title}}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
 {% endblock %}
