@@ -306,3 +306,34 @@ class AuthAppTests(TestCase):
             self.assertEqual(feedback.title, "Hot Dating Tips")
             self.assertNotIn("Be yourself...", response)
             self.assertIn("You do not have permission to edit this feedback", response)
+    
+    def test_delete_feedback_successful(self):
+        """Tests to confirm that the view function 'delete_feedback' redirects to '/users/<username>'
+        with the appropriate flashed message on a POST request that also removes the relevant feedback
+        from the database if and only if the correct user is logged in."""
+        with app.test_client() as client:
+            seed_database()
+            client.post('/login', data={"username": "newuser1", "password": "password123"}, 
+            follow_redirects=True)
+            request=client.post('/feedback/1/delete', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIsNone(Feedback.query.filter_by(id=1).first())
+            self.assertIn("Successfully deleted feedback!", response)
+            self.assertIn("Details for newuser1", response)
+            self.assertNotIn("Hot Dating Tips", response)
+    
+    def test_delete_feedback_no_login(self):
+        """Tests to confirm that the view function 'delete_feedback' redirects to 
+        '/feedback/<int:feedback_id>/update' if someone tries to make a post request to the route without
+        being logged in."""
+        with app.test_client() as client:
+            seed_database()
+            client.post('/login', data={"username": "newuser1", "password": "password123"}, 
+            follow_redirects=True)
+            request=client.post('feedback/2/delete', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIsNotNone(Feedback.query.filter_by(id=2).first())
+            self.assertIn("You do not have permission to delete this feedback.", response)
+            self.assertIn("Feedback Content for My goofy husband", response)

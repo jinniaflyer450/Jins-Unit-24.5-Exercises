@@ -117,3 +117,16 @@ def show_edit_feedback(feedback_id):
         flash("Feedback successfully edited!")
         return render_template('editfeedback.html', feedback=feedback, form=form)
     return render_template('editfeedback.html', feedback=feedback, form=form)
+
+@app.route('/feedback/<int:feedback_id>/delete', methods=["POST"])
+def delete_feedback(feedback_id):
+    """A view function that redirects to '/users/username' after deleting the piece of feedback noted in the
+    URL from the database if and only if the user who created the feedback is logged in."""
+    feedback = Feedback.query.get_or_404(feedback_id)
+    if session.get("user_id") != feedback.username:
+        flash("You do not have permission to delete this feedback.")
+        return redirect(f'/feedback/{feedback_id}/update')
+    db.session.delete(feedback)
+    db.session.commit()
+    flash("Successfully deleted feedback!")
+    return redirect(f'/users/{session.get("user_id")}')    
