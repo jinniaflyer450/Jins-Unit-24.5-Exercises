@@ -234,6 +234,18 @@ class AuthAppTests(TestCase):
             self.assertIsNone(session.get("user_id"))
     
     def test_feedback_details_get(self):
+        """Tests to confirm that the view function 'show_edit_feecback' returns 'editfeedback.html' with
+        the correct feedback details but without the form to edit the feedback on a GET request with no one
+        logged in."""
+        with app.test_client() as client:
+            seed_database()
+            request=client.get('/feedback/1/update', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIn("<h1>Feedback Content for Hot Dating Tips</h1>", response)
+            self.assertNotIn("Title (max 100 characters)", response)
+
+    def test_feedback_details_login_get(self):
         """Tests to confirm that the view function 'show_edit_feedback' returns 'editfeedback.html' with
         the correct feedback details and form to edit the feedback on a GET request with the correct login."""
         with app.test_client() as client:
@@ -245,6 +257,21 @@ class AuthAppTests(TestCase):
             self.assertIn("<h1>Feedback Content for Hot Dating Tips</h1>", response)
             self.assertIn("<h2>Edit Feedback</h2>", response)
             self.assertIn("Title (max 100 characters)", response)
+    
+    def test_feedback_details_login_wrong_get(self):
+        """Tests to confirm that the vew function 'show_edit_feedback' returns 'editfeedback.html' with
+        the correct feedback details but without the edit form if a user who is not the owner of the feedback
+        is logged in."""
+        with app.test_client() as client:
+            seed_database()
+            client.post('/login', data={"username" : 'newuser2', "password": "password456"})
+            request=client.get('/feedback/1/update', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response = request.get_data(as_text=True)
+            self.assertIn("<h1>Feedback Content for Hot Dating Tips</h1>", response)
+            self.assertNotIn("<h2>Edit Feedback</h2>", response)
+            self.assertNotIn("Title (max 100 characters)", response)
+
 
 
 
