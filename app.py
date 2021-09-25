@@ -5,7 +5,7 @@ as well as updating or deleting their own accounts."""
 from flask import Flask, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from models import db, connect_db, User, Feedback
-from forms import RegisterForm, LoginForm, EditFeedbackForm
+from forms import RegisterForm, LoginForm, FeedbackForm
 import requests
 from sqlalchemy.exc import IntegrityError
 
@@ -106,7 +106,7 @@ def show_edit_feedback(feedback_id):
     logged in, they see the title, user, and content of the feedback. If the user who created the post is
     logged in, they see the above plus a form to edit the post."""
     feedback = Feedback.query.get_or_404(feedback_id)
-    form = EditFeedbackForm(obj={"title": feedback.title, "content": feedback.content})
+    form = FeedbackForm(obj={"title": feedback.title, "content": feedback.content})
     if form.validate_on_submit():
         if session.get("user_id") != feedback.username:
             flash("You do not have permission to edit this feedback.")
@@ -129,4 +129,23 @@ def delete_feedback(feedback_id):
     db.session.delete(feedback)
     db.session.commit()
     flash("Successfully deleted feedback!")
-    return redirect(f'/users/{session.get("user_id")}')    
+    return redirect(f'/users/{session.get("user_id")}')
+
+@app.route('/users/<username>/feedback/add', methods=["GET", "POST"])
+def add_feedback(username):
+    """A view function that on a GET request returns 'addfeedback.html' with a form to add new
+    feedback if and only if the current user matches the user in the URL. On a POST request, if the 
+    form validates correctly, it adds a new piece of feedback written by the current user to the database 
+    if and only if the current user matches the user in the URL."""
+    if session.get("user_id") != username:
+        flash("You do not have permission to add feedback for this user.")
+        return redirect(f'/users/{username}')
+    else:
+        form = FeedbackForm()
+        if form.validate_on_submit():
+            feedback = Feedback(title=form.title.data, content=form.content.data, username=username)
+            db.session.add(feedback)
+            db.session.commit()
+            flash("Successfully added feedback!")
+            return redirect(f'/feedback/{feedback.id}/update')
+        return render_template('addfeedback.html', form=form, username=username)

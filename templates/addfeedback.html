@@ -1,3 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Add New Feedback{% endblock %}
-{% block content %}{% endblock %}
+{% block title %}Add Feedback for {{username}}{% endblock %}
+{% block content %}
+<h1>Add Feedback for {{username}}</h1>
+<form method="POST" action="/users/{{username}}/feedback/add">
+    {{form.hidden_tag()}}
+    {% for field in form 
+        if field.widget.input_type != hidden %}
+        <p>
+            {{field.label}}
+            {{field}}
+            {% for error in field.errors %}
+            {{error}}
+            {% endfor %}
+        </p>
+    {% endfor %}
+    <button>Add Feedback</button>
+    <a href="/users/{{username}}">Return to User Details</a>
+</form>
+{% endblock %}

@@ -331,9 +331,106 @@ class AuthAppTests(TestCase):
             seed_database()
             client.post('/login', data={"username": "newuser1", "password": "password123"}, 
             follow_redirects=True)
-            request=client.post('feedback/2/delete', follow_redirects=True)
+            request=client.post('/feedback/2/delete', follow_redirects=True)
             self.assertEqual(request.status_code, 200)
             response=request.get_data(as_text=True)
             self.assertIsNotNone(Feedback.query.filter_by(id=2).first())
             self.assertIn("You do not have permission to delete this feedback.", response)
             self.assertIn("Feedback Content for My goofy husband", response)
+    
+    def test_add_feedback_get(self):
+        """Tests to confirm that the view function 'add_feedback', if the correct user is 
+        logged in, returns 'addfeedback.html' with the correct user details. If the correct
+        user is not logged in, it returns a redirect to '/users/{username_of_attempted_post}',
+        which may eventually return 'login.html' or the user details page for that user depending
+        on if someone is logged in at all or not."""
+        with app.test_client() as client:
+            seed_database()
+
+            #Tests that function redirects to '/login' with two flashed
+            #messages if no one is logged in.
+            request=client.get('/users/newuser1/feedback/add', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("<title>Log In</title>", response)
+            self.assertIn("Please log in to view this page", response)
+            self.assertIn("You do not have permission to add feedback for this user", response)
+
+            #Tests that function redirects to '/users/attempted_add_username' with one
+            #flashed message if the wrong user is logged in.
+            client.post('/login', data={"username": "newuser2", "password": "password456"}, 
+            follow_redirects=True)
+            request=client.get('/users/newuser1/feedback/add', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("<title>Details for newuser1</title>", response)
+            self.assertIn("You do not have permission to add feedback for this user", response)
+            
+            #Tests that function returns 'addfeedback.html' with the correct user if the correct
+            #user is logged in.
+            client.get('/logout', follow_redirects=True)
+            client.post('/login', data={"username": "newuser1", "password": "password123"},
+            follow_redirects=True)
+            request=client.get('/users/newuser1/feedback/add', follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("<title>Add Feedback for newuser1</title>", response)
+            self.assertIn("<button>Add Feedback</button>", response)
+    
+    def test_add_feedback_post_successful(self):
+        """Tests to confirm that the view function 'add_feedback', on a POST request, adds feedback
+        to the database and returns the appropriate flashed message with a redirect to 
+        '/feedback/feedback_id/update' if the correct user is logged in and all required
+        info is provided."""
+        with app.test_client() as client:
+            seed_database()
+            client.post('/login', data={"username": "newuser1", "password": "password123"}, 
+            follow_redirects=True)
+            request=client.post('/users/newuser1/feedback/add', data={"title": "Final Post", 
+            "content": "I'm leaving this app."}, follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("Successfully added feedback!", response)
+            self.assertIn("<title>Feedback Content for Final Post</title>", response)
+            self.assertIn("<h2>Edit Feedback</h2>", response)
+    
+    def test_add_feedback_post_failures(self):
+        """Tests various failure results of the view function 'add_feedback' on a POST request--if no one
+        is logged in, if the wrong user is logged in, or if data is missing."""
+        with app.test_client() as client:
+            seed_database()
+
+            #Tests to confirm a redirect to '/login' with the appropriate flashed messages.
+            #on a POST request if no one is logged in.
+            request=client.post('/users/newuser1/feedback/add', data={"title": "Final Post", 
+            "content": "I'm leaving this app."}, follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("You do not have permission to add feedback for this user.", response)
+            self.assertIn("Please log in to view this page", response)
+            self.assertIn("<title>Log In</title>", response)
+
+            #Tests to confirm a redirect to '/users/username' with the appropriate flashed message
+            #on a POST request if the wrong user is logged in.
+            client.post('/login', data={"username": "newuser2", "password": "password456"}, 
+            follow_redirects=True)
+            request=client.post('/users/newuser1/feedback/add', data={"title": "Final Post", 
+            "content": "I'm leaving this app."}, follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("You do not have permission to add feedback for this user.", response)
+            self.assertIn("<title>Details for newuser1</title>", response)
+
+            #Tests to confirm that 'addfeedback.html' renders with the appropriate username
+            #and form if somehow, a user sends a POST request to this function with missing
+            # data.
+            client.get('/logout', follow_redirects=True)
+            client.post('/login', data={"username": "newuser1", "password": "password123"}, 
+            follow_redirects=True)
+            request=client.post('/users/newuser1/feedback/add', data={"title": "", 
+            "content": "I'm leaving this app."}, follow_redirects=True)
+            self.assertEqual(request.status_code, 200)
+            response=request.get_data(as_text=True)
+            self.assertIn("Title required", response)
+            self.assertIn("<title>Add Feedback for newuser1</title>", response)
+
